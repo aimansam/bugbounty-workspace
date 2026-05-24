@@ -127,10 +127,39 @@ def load_captured_requests(paths: list[Path]) -> list[CapturedRequest]:
     return captured
 
 
-def is_target(request: CapturedRequest, patterns: list[str]) -> bool:
+def normalize_host(value: str) -> str:
+    value = value.strip().lower()
+    if "://" in value:
+        value = urlparse(value).netloc
+    return value.split(":", 1)[0].lstrip("*.")
+
+
+def load_hosts(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    hosts: set[str] = set()
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        hosts.add(normalize_host(line))
+    return hosts
+
+
+def is_allowed_host(host: str, allowed_roots: set[str], blocked_hosts: set[str]) -> bool:
+    host = normalize_host(host)
+    if host in blocked_hosts:
+        return False
+    return any(host == root or host.endswith(f".{root}") for root in allowed_roots)
+
+
+def is_target(request: CapturedRequest, patterns: list[str], include_post: bool) -> bool:
     parsed = urlparse(request.url)
     target = parsed.path
-    if request.method not in {"GET", "POST"}:
+    allowed_methods = {"GET"}
+    if include_post:
+        allowed_methods.add("POST")
+    if request.method not in allowed_methods:
         return False
     return any(re.search(pattern, target) for pattern in patterns)
 
@@ -211,11 +240,14 @@ def send_variant(request: CapturedRequest, variant: str, args: argparse.Namespac
         }
 
 
-def unique_targets(requests: list[CapturedRequest], patterns: list[str], limit: int) -> list[CapturedRequest]:
+def unique_targets(requests: list[CapturedRequest], patterns: list[str], allowed_roots: set[str], blocked_hosts: set[str], limit: int, include_post: bool) -> list[CapturedRequest]:
     seen: set[tuple[str, str]] = set()
     selected: list[CapturedRequest] = []
     for request in requests:
-        if not is_target(request, patterns):
+        parsed = urlparse(request.url)
+        if not is_allowed_host(parsed.netloc, allowed_roots, blocked_hosts):
+            continue
+        if not is_target(request, patterns, include_post):
             continue
         key = (request.method, request.url)
         if key in seen:
@@ -258,7 +290,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("files", nargs="+", help="Burp XML export files")
     parser.add_argument("--variant", action="append", choices=["no-auth", "invalid-authorization"], default=None, help="Variant to test. Default: both")
     parser.add_argument("--pattern", action="append", default=None, help="Regex path pattern to select. Default: users/self, account-status, Pendo")
-    parser.add_argument("--max-targets", type=int, default=10, help="Maximum unique GET targets to test. Default: 10")
+    parser.add_argument("--include-post", action="store_true", help="Allow replaying selected POST requests. Default: GET only")
+    parser.add_argument("--max-targets", type=int, default=10, help="Maximum unique targets to test. Default: 10")
     parser.add_argument("--delay", type=float, default=2.0, help="Delay between requests in seconds. Default: 2")
     parser.add_argument("--timeout", type=int, default=10, help="HTTP timeout in seconds. Default: 10")
     parser.add_argument("--max-body-bytes", type=int, default=300_000, help="Maximum response bytes sampled. Default: 300000")
@@ -271,8 +304,13 @@ def main() -> int:
     args = parse_args()
     args.variant = args.variant or ["no-auth", "invalid-authorization"]
     patterns = args.pattern or list(TARGET_PATTERNS)
+    program_dir = Path("programs") / args.program
+    allowed_roots = load_hosts(program_dir / "targets.txt")
+    blocked_hosts = load_hosts(program_dir / "out-of-scope.txt")
+    if not allowed_roots:
+        raise SystemExit(f"No allowed hosts found in {program_dir / 'targets.txt'}")
     requests = load_captured_requests([Path(file_name) for file_name in args.files])
-    selected = unique_targets(requests, patterns, args.max_targets)
+    selected = unique_targets(requests, patterns, allowed_roots, blocked_hosts, args.max_targets, args.include_post)
     results: list[dict[str, object]] = []
     for request in selected:
         for variant in args.variant:

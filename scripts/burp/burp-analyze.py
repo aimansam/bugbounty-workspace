@@ -22,16 +22,27 @@ SENSITIVE_NAMES = {
     "csrf",
     "token",
     "access_token",
+    "api-key",
+    "apikey",
+    "captcha",
     "id_token",
+    "ip",
+    "ip_address",
+    "ipaddress",
     "refresh_token",
     "password",
     "passwd",
+    "phone",
+    "phonecode",
     "secret",
     "email",
     "username",
     "user",
+    "x-api-key",
+    "x-forwarded-for",
 }
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 PERSON_URN_RE = re.compile(r"urn:[^\s/?&\"']+")
 JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
 
@@ -55,6 +66,7 @@ def redact_name_value(name: str, value: str) -> str:
 
 def redact_text(value: str) -> str:
     value = EMAIL_RE.sub("[REDACTED_EMAIL]", value)
+    value = IPV4_RE.sub("[REDACTED_IP]", value)
     value = PERSON_URN_RE.sub("[REDACTED_PERSON_URN]", value)
     value = JWT_RE.sub("[REDACTED_JWT]", value)
     return value
@@ -86,15 +98,17 @@ def redact_json(value: object) -> object:
         redacted: dict[str, object] = {}
         for key, child in value.items():
             key_lower = key.lower()
-            if key_lower in SENSITIVE_NAMES or any(item in key_lower for item in ("token", "password", "secret", "jwt")):
+            if key_lower in SENSITIVE_NAMES or any(item in key_lower for item in ("token", "password", "secret", "jwt", "captcha", "phone", "api_key", "apikey")):
                 redacted[key] = "[REDACTED]"
             else:
                 redacted[key] = redact_json(child)
         return redacted
     if isinstance(value, list):
         return [redact_json(item) for item in value]
-    if isinstance(value, str) and len(value) > 120:
-        return f"{value[:80]}...[truncated:{len(value)}]"
+    if isinstance(value, str):
+        value = redact_text(value)
+        if len(value) > 120:
+            return f"{value[:80]}...[truncated:{len(value)}]"
     return value
 
 
