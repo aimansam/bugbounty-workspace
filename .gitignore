@@ -1,0 +1,12 @@
+*.log
+*.tmp
+*.tar.gz
+*.tgz
+*.zip
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
+archives/
+programs/
