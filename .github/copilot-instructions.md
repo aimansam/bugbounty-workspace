@@ -24,14 +24,15 @@ This workspace is an authorized bug bounty automation toolkit. Treat all testing
 2. Save scope/rules in `programs/<program>/scope.md` and in-scope targets in `programs/<program>/targets.txt`.
 3. Start with passive/default automation:
    `python3 scripts/core/hunt-automate.py <program>`
-4. Use `--passive-plus` only when broader passive discovery is allowed and useful.
-5. Use `--active` only after confirming active testing is allowed.
-6. Use `--with-burp` after the user exports researcher-owned Burp traffic to `programs/<program>/evidence/burp/`.
-7. Use `--archive-only` to close a program without rerunning tests.
+4. Treat the workflow order as passive recon, active discovery, parameter testing, then Burp analysis.
+5. Use `--passive-plus` only when broader passive discovery is allowed and useful.
+6. Use `--active` only after confirming parameter testing is allowed.
+7. Use `--with-burp` after the user exports researcher-owned Burp traffic to `programs/<program>/evidence/burp/`.
+8. Use `--archive-only` to close a program without rerunning tests.
 
 ## Tool Priority
 
-- `scripts/core/hunt-automate.py`: orchestrates the workflow, writes summaries, creates archives.
+- `scripts/core/hunt-automate.py`: orchestrates passive recon, active discovery, parameter tests, Burp analysis, writes summaries, creates archives.
 - `scripts/recon/passive-recon.sh`: DNS/header snapshot.
 - `scripts/recon/external-recon.sh`: optional broader passive recon with available external tools.
 - `scripts/recon/param-crawler.py`: gentle URL/query/form inventory.

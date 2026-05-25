@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Orchestrate the local bug bounty recon scripts for one program.
+"""Orchestrate the local bug bounty workflow for one program.
 
-The default mode runs low-rate public recon and writes a redacted archive.
-Active checks and Burp replay are opt-in because each program's rules differ.
+The workflow is passive recon, active discovery, parameter testing, then Burp
+analysis. Parameter tests and Burp replay are opt-in because each program's
+rules differ.
 """
 
 from __future__ import annotations
@@ -150,10 +151,9 @@ def write_hunt_summary(program: str, program_dir: Path, args: argparse.Namespace
         "## Automation Run",
         "",
         f"- Passive recon: {'yes' if not args.skip_passive else 'skipped'}",
-        f"- Crawler max pages: {args.max_pages}",
-        f"- JavaScript extraction max scripts: {args.max_scripts}",
-        f"- Active checks: {'yes' if args.active else 'no'}",
-        f"- Burp processing: {'yes' if args.with_burp else 'no'}",
+        f"- Active discovery: crawler max pages {args.max_pages}, JS max scripts {args.max_scripts}",
+        f"- Parameter testing: {'yes' if args.active else 'no'}",
+        f"- Burp analysis: {'yes' if args.with_burp else 'no'}",
         "",
         "## Output Counts",
         "",
@@ -260,8 +260,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
     parser.add_argument("--skip-passive", action="store_true", help="Skip passive DNS/header recon")
     parser.add_argument("--passive-plus", action="store_true", help="Run optional external recon tools when installed")
-    parser.add_argument("--active", action="store_true", help="Run opt-in active parameter and endpoint safety checks")
-    parser.add_argument("--with-burp", action="store_true", help="Analyze Burp exports and run auth variant checks when exports exist")
+    parser.add_argument("--active", action="store_true", help="Run opt-in parameter tests and endpoint safety checks")
+    parser.add_argument("--with-burp", action="store_true", help="Run redacted Burp analysis and auth variant checks when exports exist")
     parser.add_argument("--include-evidence", action="store_true", help="Include evidence files in archive. Private folders are still excluded.")
     parser.add_argument("--archive-only", action="store_true", help="Only write the hunt summary and archive; do not run recon or tests")
     parser.add_argument("--restore-archive", nargs="?", const="latest", help="Restore this program from an archive path, or latest when no path is provided")

@@ -9,13 +9,10 @@ Use this when starting a new authorized program. Keep testing inside written sco
 - Mark forbidden testing, rate limits, third-party exclusions, and auth/account rules.
 - Pick one target app first; do not spread across the whole scope on day one.
 
-## 1. Quick Recon
+## 1. Passive Recon
 
 ```bash
 bash scripts/recon/passive-recon.sh <program>
-python3 scripts/recon/param-crawler.py <program> --seed https://target.example/ --max-pages 30 --delay 2
-python3 scripts/recon/js-endpoint-extractor.py <program> --max-pages 15 --max-scripts 30 --delay 2
-python3 scripts/testing/basic-param-test.py <program> --interesting-only --max-tests 20 --delay 2
 ```
 
 Optional broader passive recon when allowed:
@@ -24,13 +21,31 @@ Optional broader passive recon when allowed:
 bash scripts/recon/external-recon.sh <program>
 ```
 
+## 2. Active Discovery
+
+Run only when low-rate browsing/crawling is allowed.
+
+```bash
+python3 scripts/recon/param-crawler.py <program> --seed https://target.example/ --max-pages 30 --delay 2
+python3 scripts/recon/js-endpoint-extractor.py <program> --max-pages 15 --max-scripts 30 --delay 2
+```
+
 Look for:
 
 - Account, profile, billing, entitlement, invite, admin, export, file, download, and search endpoints.
 - Parameters like `id`, `userId`, `accountId`, `orgId`, `email`, `role`, `redirect`, `next`, `url`, `file`, `path`, `format`, `query`, `q`.
 - JavaScript routes or API hosts that are not visible in normal navigation.
 
-## 2. Capture Real App Flows
+## 3. Parameter Tests
+
+Run only when active testing is allowed.
+
+```bash
+python3 scripts/testing/basic-param-test.py <program> --interesting-only --max-tests 20 --delay 2
+python3 scripts/testing/endpoint-safety-tester.py <program> programs/<program>/recon/fresh-candidates/auto-targets.txt --delay 2 --timeout 10
+```
+
+## 4. Capture Real App Flows
 
 Use Burp with two researcher-owned accounts when allowed.
 
@@ -45,7 +60,7 @@ High-value flows to capture:
 
 Export Burp XML to `programs/<program>/evidence/burp/`.
 
-## 3. Mine The Capture
+## 5. Burp Analysis
 
 ```bash
 python3 scripts/burp/burp-analyze.py <program> programs/<program>/evidence/burp/*.req
@@ -59,11 +74,10 @@ Prioritize endpoints with:
 - State-dependent data: entitlement, role, subscription, order, license, tenant, course, workspace.
 - Different responses between account A and account B.
 
-## 4. Fast Read-Only Bug Checks
+## 6. Fast Read-Only Bug Checks
 
 ```bash
 python3 scripts/burp/auth-variant-tester.py <program> programs/<program>/evidence/burp/*.req --max-targets 8 --delay 2
-python3 scripts/testing/endpoint-safety-tester.py <program> programs/<program>/recon/fresh-candidates/targets.txt --delay 2 --timeout 10
 ```
 
 Good early bug classes:
@@ -85,7 +99,7 @@ Usually low-value by itself:
 - Generic `500` without useful error details.
 - Reflected self-XSS or purely cosmetic issues.
 
-## 5. Report Decision
+## 7. Report Decision
 
 Before writing a report, confirm:
 

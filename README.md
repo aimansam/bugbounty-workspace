@@ -6,10 +6,12 @@ This workspace is for authorized bug bounty work only. Keep every test tied to a
 
 1. Pick a program and save its rules in `programs/<program-name>/scope.md`.
 2. Add in-scope assets to `programs/<program-name>/targets.txt`.
-3. Run passive recon first and save outputs under `programs/<program-name>/recon/`.
-4. Move to active testing only when the program allows it.
-5. Save screenshots, requests, responses, and reproduction notes under `programs/<program-name>/evidence/`.
-6. Draft reports in `programs/<program-name>/reports/`.
+3. Start with passive recon and save outputs under `programs/<program-name>/recon/`.
+4. Move to active discovery only when the program allows low-rate crawling or navigation.
+5. Run focused parameter tests only after confirming active testing is allowed.
+6. Analyze researcher-owned Burp captures after exporting them to `programs/<program-name>/evidence/burp/`.
+7. Save screenshots, requests, responses, and reproduction notes under `programs/<program-name>/evidence/`.
+8. Draft reports in `programs/<program-name>/reports/`.
 
 For a repeatable new-scope routine, start with [templates/fast-hunt-checklist.md](templates/fast-hunt-checklist.md).
 
@@ -23,15 +25,15 @@ Public/passive default run:
 python3 scripts/core/hunt-automate.py <program-name>
 ```
 
-This runs passive recon, the parameter crawler, JavaScript endpoint extraction, writes `programs/<program-name>/notes/hunt-summary.md`, and creates a `.tar.gz` archive under `archives/<program-name>/`.
+The standard workflow order is passive recon, active discovery, parameter testing, then Burp analysis. The default command runs passive recon plus gentle active discovery with the parameter crawler and JavaScript endpoint extraction, writes `programs/<program-name>/notes/hunt-summary.md`, and creates a `.tar.gz` archive under `archives/<program-name>/`.
 
-When active testing is allowed by the program rules, add `--active`:
+When parameter testing is allowed by the program rules, add `--active`:
 
 ```bash
 python3 scripts/core/hunt-automate.py <program-name> --active --delay 2
 ```
 
-This adds basic parameter checks and conservative endpoint safety tests for query-parameter URLs discovered during crawling and JavaScript extraction.
+This adds basic parameter checks and conservative endpoint safety tests for query-parameter URLs discovered during active discovery.
 
 When broader passive recon is allowed and optional tools are installed, add `--passive-plus`:
 
@@ -49,7 +51,7 @@ python3 scripts/core/hunt-automate.py <program-name> --with-burp
 
 This runs redacted Burp analysis, endpoint prioritization, and auth variant checks.
 
-Useful combined run after you have confirmed active testing is allowed and captured researcher-owned account flows:
+Useful combined run after you have completed passive recon, confirmed parameter testing is allowed, and captured researcher-owned account flows:
 
 ```bash
 python3 scripts/core/hunt-automate.py <program-name> --active --with-burp --delay 2

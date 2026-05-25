@@ -5,7 +5,7 @@ All scripts are for authorized bug bounty programs only. Keep each run tied to t
 ## Program Setup
 
 - `scripts/core/new-program.sh` - creates `programs/<program>/` folders, scope file, target file, and a fast hunt checklist.
-- `scripts/core/hunt-automate.py` - orchestrates recon, optional active checks, optional Burp processing, summary writing, and archiving.
+- `scripts/core/hunt-automate.py` - orchestrates passive recon, active discovery, optional parameter tests, optional Burp analysis, summary writing, and archiving.
 
 ## Script Placement
 
@@ -37,6 +37,13 @@ All scripts are for authorized bug bounty programs only. Keep each run tied to t
 
 ## Common Runs
 
+Recommended workflow order:
+
+1. Passive recon: confirm scope and collect DNS/header/technology hints.
+2. Active discovery: crawl gently and extract JavaScript endpoints.
+3. Parameter testing: run focused reflection and endpoint safety checks only when allowed.
+4. Burp analysis: import researcher-owned traffic, prioritize endpoints, and run metadata-only auth variants.
+
 Create a program:
 
 ```bash
@@ -49,7 +56,7 @@ Default automation:
 python3 scripts/core/hunt-automate.py <program-name>
 ```
 
-Active checks when allowed:
+Parameter tests when active testing is allowed:
 
 ```bash
 python3 scripts/core/hunt-automate.py <program-name> --active --delay 2
